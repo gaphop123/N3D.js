@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>N3D.js — Demo 1: Rotating Cube</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #111; }
+    canvas { display: block; width: 100%; height: 100%; }
+    #info {
+      position: absolute; top: 12px; left: 12px;
+      color: #eee; font-family: ui-monospace, monospace; font-size: 13px;
+      background: rgba(0,0,0,0.6); padding: 8px 12px; border-radius: 6px;
+      pointer-events: none;
+    }
+    #error {
+      position: absolute; inset: 0; display: none;
+      background: #200; color: #f88; font-family: monospace;
+      padding: 24px; white-space: pre-wrap; overflow: auto;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div id="info">N3D.js — Rotating Cube<br>Initializing...</div>
+  <div id="error"></div>
+
+  <script type="module">
+    import N3D from '../src/index.js';
+
+    const canvas = document.getElementById('c');
+    const info = document.getElementById('info');
+    const errorEl = document.getElementById('error');
+
+    async function main() {
+      if (!navigator.gpu) {
+        throw new Error('WebGPU is not supported in this browser.');
+      }
+
+      const engine = await N3D.Engine.create({
+        canvas,
+        antialias: true,
+        powerPreference: 'high-performance',
+        debug: true
+      });
+
+      const renderer = new N3D.Renderer(engine);
+      engine.renderer = renderer;
+
+      const scene = new N3D.Scene();
+      const camera = new N3D.PerspectiveCamera(60, canvas.width / canvas.height, 0.1, 100);
+      camera.position.set(0, 1.5, 4);
+      // Simple look-at via matrix (no dedicated helper yet)
+      camera.lookAt?.(); // not implemented; we set world matrix manually below
+
+      // Position camera looking at origin
+      // For demo we use a simple approach: update projection only
+      camera.updateProjectionMatrix();
+
+      const geometry = new N3D.BoxGeometry(1.2, 1.2, 1.2);
+      const material = new N3D.PBRMaterial({
+        baseColor: [0.3, 0.6, 1.0],
+        metallic: 0.2,
+        roughness: 0.4
+      });
+
+      const cube = new N3D.Mesh(geometry, material);
+      scene.add(cube);
+
+      renderer.setScene(scene, camera);
+      renderer.clearColor = { r: 0.08, g: 0.09, b: 0.12, a: 1 };
+
+      // Simple orbit via updating camera position each frame
+      let angle = 0;
+
+      engine.events.on('update', ({ delta }) => {
+        angle += delta * 0.8;
+        cube.rotation.setFromAxisAngle(new N3D.Vector3(0.3, 1, 0.2).normalize(), angle);
+        cube.updateMatrix();
+
+        // Camera orbit
+        const radius = 4;
+        camera.position.set(
+          Math.sin(angle * 0.3) * radius,
+          1.5 + Math.sin(angle * 0.2) * 0.5,
+          Math.cos(angle * 0.3) * radius
+        );
+        // Rebuild look-at matrix
+        camera.worldMatrix.lookAt(camera.position, new N3D.Vector3(0, 0, 0), new N3D.Vector3(0, 1, 0));
+        camera.matrixWorldInverse.copy(camera.worldMatrix).invert();
+        // Also keep local matrix in sync for consistency
+        camera.matrix.copy(camera.worldMatrix);
+
+        info.innerHTML = `N3D.js — Rotating Cube<br>
+FPS: ${engine.stats.fps} | Frame: ${engine.frame}<br>
+DrawCalls: ${engine.stats.drawCalls} | Tris: ${engine.stats.triangles}`;
+      });
+
+      engine.start();
+    }
+
+    main().catch((err) => {
+      console.error(err);
+      errorEl.style.display = 'block';
+      errorEl.textContent = 'Failed to start N3D.js demo:\n\n' + (err.stack || err.message || err);
+    });
+  </script>
+</body>
+</html>

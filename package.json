@@ -1,0 +1,45 @@
+{
+  "name": "n3d.js",
+  "version": "0.1.0",
+  "description": "Advanced WebGPU-first 3D Engine for the web. High-performance, modular, production-oriented architecture.",
+  "type": "module",
+  "main": "./dist/n3d.cjs",
+  "module": "./dist/n3d.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/n3d.js",
+      "require": "./dist/n3d.cjs",
+      "types": "./index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "index.d.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "echo 'Build system placeholder - use Rollup/Vite/esbuild in real project'",
+    "dev": "echo 'Development server placeholder'",
+    "test": "echo 'Tests placeholder'",
+    "benchmark": "echo 'Benchmarks placeholder'"
+  },
+  "keywords": [
+    "webgpu",
+    "3d",
+    "engine",
+    "graphics",
+    "rendering",
+    "pbr",
+    "game-engine",
+    "webgl-alternative"
+  ],
+  "author": "N3D Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "sideEffects": false
+}
