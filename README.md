@@ -1,15 +1,16 @@
 # N3D.js — Advanced WebGPU 3D Engine
 
-**N3D.js** is a modern, WebGPU-first 3D engine for the web. It is designed with a modular, engine-grade architecture focusing on **correctness, stability, performance, and clear error handling**.
+**N3D.js** is a modern, WebGPU-first 3D engine for the web.  
+Modular, engine-grade architecture focused on **correctness, stability, performance, and strict error handling**.
 
-> Status: **Early foundation (v0.1.0)**  
-> Core systems (Device, Engine, Scene Graph, Geometry, Materials, basic Forward Renderer, strict Error System) are implemented. Advanced features (full PBR lighting, shadows, post-processing, RenderGraph, animation, physics, particles, GLTF, etc.) are architected but many are not yet fully implemented.
+> Status: **v0.2.0**  
+> Core systems + DirectionalLight (Sun), Ambient/Hemisphere lights, material-aware forward shading, and a real collision/raycast system.
 
 ## Design Principles
 
 1. **WebGPU only** — No WebGL fallback. Feature detection is mandatory.
 2. **Strict error handling** — Fatal errors stop the render/update loop immediately. No silent failures.
-3. **Modular architecture** — Clear separation of Core, Scene, Geometry, Material, Renderer, Shader, etc.
+3. **Modular architecture** — Clear separation of Core, Scene, Geometry, Material, Lighting, Physics, Renderer.
 4. **Resource lifetime tracking** — All GPU resources are tracked and disposable.
 5. **High-level + Low-level API** — Easy scene API on top of explicit WebGPU control.
 6. **No fake features** — Incomplete features throw `N3D_NOT_IMPLEMENTED` instead of pretending to work.
@@ -22,129 +23,89 @@
   import N3D from './src/index.js';
 
   const canvas = document.getElementById('c');
-
-  const engine = await N3D.Engine.create({
-    canvas,
-    debug: true,
-    powerPreference: 'high-performance'
-  });
-
+  const engine = await N3D.Engine.create({ canvas, debug: true });
   const renderer = new N3D.Renderer(engine);
   engine.renderer = renderer;
 
   const scene = new N3D.Scene();
   const camera = new N3D.PerspectiveCamera(60, canvas.width / canvas.height, 0.1, 100);
-  camera.position.set(0, 1.5, 4);
+  camera.position.set(0, 2, 6);
 
-  const geometry = new N3D.BoxGeometry(1, 1, 1);
-  const material = new N3D.PBRMaterial({
-    baseColor: [0.2, 0.6, 1.0],
-    metallic: 0.1,
-    roughness: 0.4
+  // Sun
+  const sun = N3D.DirectionalLight.createSun({
+    elevation: 45,
+    azimuth: 40,
+    intensity: 2.5
   });
+  scene.add(sun);
+  scene.add(new N3D.AmbientLight(0x6080c0, 0.2));
 
-  const mesh = new N3D.Mesh(geometry, material);
+  const mesh = new N3D.Mesh(
+    new N3D.BoxGeometry(1, 1, 1),
+    new N3D.PBRMaterial({ baseColor: [0.2, 0.6, 1.0], metallic: 0.2, roughness: 0.4 })
+  );
   scene.add(mesh);
+
+  // Collision
+  const physics = new N3D.PhysicsWorld();
+  physics.addBoxCollider(mesh, new N3D.Vector3(1, 1, 1));
 
   renderer.setScene(scene, camera);
   engine.start();
 </script>
 ```
 
-## Architecture Overview
+## What’s New in v0.2
 
-```
-N3D
-├── Core          Engine, Device, ResourceManager, ErrorSystem, EventSystem, Logger
-├── Scene         Scene, Node, Object3D, Mesh, Camera
-├── Geometry      Geometry, BufferGeometry, BoxGeometry, ...
-├── Material      Material, PBRMaterial, UnlitMaterial, ShaderMaterial
-├── Texture       (planned)
-├── Shader        WGSL modules, Pipeline cache (partial)
-├── Renderer      Forward renderer (basic), RenderGraph (planned)
-├── Lighting      (planned)
-├── PostProcessing(planned)
-├── Animation     (planned)
-├── Physics       Interface only (planned)
-├── Assets        (planned)
-├── Math          Vector3, Matrix4, Quaternion, ...
-├── Input         (planned)
-└── Debug         Stats, GPU profiler (partial)
-```
+| Feature | Status |
+|--------|--------|
+| DirectionalLight (Sun) | ✅ `DirectionalLight.createSun()` |
+| AmbientLight / HemisphereLight | ✅ |
+| Material-aware lighting | ✅ baseColor, metallic, roughness in shader |
+| Box3 / Sphere / Ray | ✅ |
+| BoxCollider / SphereCollider | ✅ |
+| PhysicsWorld | ✅ raycast, overlap, collision events |
+| Color class | ✅ |
 
-## Error System (Critical)
+## Implemented Systems
 
-Fatal errors **stop the engine**:
+| System | Status |
+|--------|--------|
+| Engine + Game Loop | ✅ |
+| WebGPU Device/Adapter + capabilities | ✅ |
+| Strict ErrorSystem | ✅ Fatal stops everything |
+| ResourceManager | ✅ |
+| Scene Graph | ✅ |
+| Perspective / Orthographic Camera | ✅ |
+| BoxGeometry / SphereGeometry | ✅ |
+| Forward Renderer (lit) | ✅ |
+| PBRMaterial (data + shading) | ✅ basic metallic-roughness |
+| Directional / Ambient / Hemisphere lights | ✅ |
+| Collision + Raycast | ✅ |
+| Math (Vector3, Matrix4, Quaternion, Color, Box3, Sphere, Ray) | ✅ |
 
-```js
-// Example of what appears in DevTools
-[N3D FATAL ERROR]
-Code: N3D_GPU_DEVICE_LOST
-Subsystem: Device
-Message: GPU device was lost during render execution.
-Frame: 1834
-...
-```
+## Not Yet Implemented
 
-There is **no silent recovery**. Explicit recovery is available via:
-
-```js
-await engine.recover(); // Application must re-create resources
-```
-
-## Current Implemented Features
-
-| System              | Status                          |
-|---------------------|---------------------------------|
-| Engine + Game Loop  | ✅ Working                      |
-| WebGPU Device/Adapter | ✅ With capability detection  |
-| Strict ErrorSystem  | ✅ Fatal stops everything       |
-| ResourceManager     | ✅ Tracking + dispose           |
-| Scene Graph         | ✅ Node hierarchy, transforms   |
-| PerspectiveCamera   | ✅                              |
-| BoxGeometry         | ✅                              |
-| Basic Forward Renderer | ✅ Lit cube                  |
-| PBRMaterial (data)  | ✅ (lighting model still simple)|
-| Math (Vector3/Mat4/Quat) | ✅                         |
-| Resize + DPR        | ✅                              |
-
-## Not Yet Implemented (will throw or be incomplete)
-
-- Full GGX PBR + IBL
-- Shadows / CSM
-- Post-processing stack / RenderGraph
-- Instancing / LOD / Frustum culling (structure ready)
+- Full GGX PBR + IBL / environment maps
+- Shadow maps / CSM
+- Post-processing / RenderGraph
+- Instancing / GPU culling / LOD
 - Animation / Skinning
-- GLTF / Asset loaders
+- GLTF loader
 - Compute shaders / GPU particles
-- Physics integration
-- Advanced materials & effects
+- Full rigid-body physics backend
 
-When a feature is missing you will see a clear `N3D_NOT_IMPLEMENTED` error rather than broken behavior.
+Missing features throw a clear `N3D_NOT_IMPLEMENTED` error.
+
+## Examples
+
+- `examples/01_rotating_cube.html` — basic cube
+- `examples/02_sun_and_collision.html` — sun lighting + physics/collision demo
 
 ## Browser Support
 
-Requires a browser with **WebGPU** enabled (Chrome 113+, Edge 113+, Firefox Nightly with flag, Safari Technology Preview).
-
-## Project Structure
-
-```
-N3D.js/
-├── src/           Source modules
-├── examples/      Live demos
-├── shaders/       WGSL sources (future)
-├── tests/         Unit / integration tests
-├── docs/          Documentation
-├── dist/          Built bundles
-├── package.json
-├── index.d.ts     TypeScript definitions
-└── README.md
-```
+Requires **WebGPU** (Chrome 113+, Edge 113+, Firefox Nightly with flag, Safari TP).
 
 ## License
 
 MIT
-
----
-
-**N3D.js** aims to become a serious WebGPU-native alternative for games, visualization, simulation and interactive 3D on the web. The foundation prioritizes long-term architectural correctness over feature quantity.

@@ -15,6 +15,10 @@ export { EventSystem } from './core/EventSystem.js';
 export { Vector3, VECTOR3_ZERO, VECTOR3_ONE, VECTOR3_UP } from './math/Vector3.js';
 export { Matrix4 } from './math/Matrix4.js';
 export { Quaternion } from './math/Quaternion.js';
+export { Color } from './math/Color.js';
+export { Box3 } from './math/Box3.js';
+export { Sphere } from './math/Sphere.js';
+export { Ray } from './math/Ray.js';
 
 // Scene
 export { Node } from './scene/Node.js';
@@ -31,6 +35,26 @@ export { SphereGeometry } from './geometry/SphereGeometry.js';
 // Material
 export { Material, UnlitMaterial, PBRMaterial, ShaderMaterial } from './material/Material.js';
 
+// Lighting
+export {
+  Light,
+  DirectionalLight,
+  PointLight,
+  AmbientLight,
+  HemisphereLight
+} from './lighting/Light.js';
+
+// Physics / Collision
+export {
+  Collider,
+  BoxCollider,
+  SphereCollider,
+  RaycastHit,
+  collidersIntersect,
+  raycastCollider
+} from './physics/Collider.js';
+export { PhysicsWorld } from './physics/PhysicsWorld.js';
+
 // Renderer
 export { Renderer } from './renderer/Renderer.js';
 
@@ -45,12 +69,27 @@ import { PBRMaterial, UnlitMaterial, ShaderMaterial } from './material/Material.
 import { Vector3 } from './math/Vector3.js';
 import { Matrix4 } from './math/Matrix4.js';
 import { Quaternion } from './math/Quaternion.js';
+import { Color } from './math/Color.js';
+import { Box3 } from './math/Box3.js';
+import { Sphere } from './math/Sphere.js';
+import { Ray } from './math/Ray.js';
 import { Renderer } from './renderer/Renderer.js';
 import { ErrorSystem } from './core/ErrorSystem.js';
 import { Logger } from './core/Logger.js';
+import {
+  Light,
+  DirectionalLight,
+  PointLight,
+  AmbientLight,
+  HemisphereLight
+} from './lighting/Light.js';
+import { PhysicsWorld } from './physics/PhysicsWorld.js';
+import { BoxCollider, SphereCollider } from './physics/Collider.js';
 
 const N3D = {
   Engine,
+  ErrorSystem,
+  Logger,
   Scene,
   PerspectiveCamera,
   OrthographicCamera,
@@ -60,15 +99,24 @@ const N3D = {
   PBRMaterial,
   UnlitMaterial,
   ShaderMaterial,
+  Light,
+  DirectionalLight,
+  PointLight,
+  AmbientLight,
+  HemisphereLight,
+  PhysicsWorld,
+  BoxCollider,
+  SphereCollider,
   Vector3,
   Matrix4,
   Quaternion,
+  Color,
+  Box3,
+  Sphere,
+  Ray,
   Renderer,
-  ErrorSystem,
-  Logger,
-  // Version
-  REVISION: '0.1.0',
-  version: '0.1.0'
+  REVISION: '0.2.0',
+  version: '0.2.0'
 };
 
 export default N3D;

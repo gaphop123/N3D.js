@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>N3D.js — Demo 2: Sunlight + Collision</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0a10; }
+    canvas { display: block; width: 100%; height: 100%; }
+    #info {
+      position: absolute; top: 12px; left: 12px;
+      color: #e8e8f0; font-family: ui-monospace, monospace; font-size: 12px;
+      background: rgba(0,0,0,0.65); padding: 10px 14px; border-radius: 8px;
+      line-height: 1.5; pointer-events: none; max-width: 320px;
+    }
+    #error {
+      position: absolute; inset: 0; display: none;
+      background: #1a0000; color: #ff8888; font-family: monospace;
+      padding: 24px; white-space: pre-wrap; overflow: auto; z-index: 10;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div id="info">N3D.js v0.2 — Sun + Collision<br>Initializing WebGPU...</div>
+  <div id="error"></div>
+
+  <script type="module">
+    import N3D from '../src/index.js';
+
+    const canvas = document.getElementById('c');
+    const info = document.getElementById('info');
+    const errorEl = document.getElementById('error');
+
+    async function main() {
+      if (!navigator.gpu) {
+        throw new Error('WebGPU is not supported in this browser.');
+      }
+
+      const engine = await N3D.Engine.create({
+        canvas,
+        antialias: true,
+        powerPreference: 'high-performance',
+        debug: true
+      });
+
+      const renderer = new N3D.Renderer(engine);
+      engine.renderer = renderer;
+      renderer.clearColor = { r: 0.06, g: 0.07, b: 0.12, a: 1 };
+
+      const scene = new N3D.Scene();
+      const camera = new N3D.PerspectiveCamera(55, canvas.width / canvas.height, 0.1, 200);
+      camera.position.set(0, 4, 10);
+
+      // --- SUN (DirectionalLight) ---
+      const sun = N3D.DirectionalLight.createSun({
+        elevation: 50,
+        azimuth: 35,
+        intensity: 2.8,
+        color: 0xfff2d6
+      });
+      scene.add(sun);
+
+      // Ambient fill
+      const ambient = new N3D.AmbientLight(0x6080c0, 0.25);
+      scene.add(ambient);
+
+      // Ground plane (flat box)
+      const groundGeo = new N3D.BoxGeometry(20, 0.4, 20);
+      const groundMat = new N3D.PBRMaterial({
+        baseColor: [0.22, 0.28, 0.22],
+        metallic: 0.0,
+        roughness: 0.85
+      });
+      const ground = new N3D.Mesh(groundGeo, groundMat);
+      ground.position.set(0, -0.2, 0);
+      ground.name = 'Ground';
+      scene.add(ground);
+
+      // Cubes
+      const colors = [
+        [0.9, 0.25, 0.2],
+        [0.2, 0.55, 0.95],
+        [0.95, 0.75, 0.15],
+        [0.3, 0.85, 0.45],
+        [0.75, 0.35, 0.9]
+      ];
+      const cubes = [];
+      for (let i = 0; i < 5; i++) {
+        const geo = new N3D.BoxGeometry(1.1, 1.1, 1.1);
+        const mat = new N3D.PBRMaterial({
+          baseColor: colors[i],
+          metallic: 0.15 + i * 0.1,
+          roughness: 0.35
+        });
+        const mesh = new N3D.Mesh(geo, mat);
+        mesh.position.set((i - 2) * 2.4, 0.55, 0);
+        mesh.name = `Cube_${i}`;
+        scene.add(mesh);
+        cubes.push(mesh);
+      }
+
+      // Sphere
+      const sphereGeo = new N3D.SphereGeometry(0.7, 32, 24);
+      const sphereMat = new N3D.PBRMaterial({
+        baseColor: [0.95, 0.95, 0.98],
+        metallic: 0.7,
+        roughness: 0.2
+      });
+      const sphere = new N3D.Mesh(sphereGeo, sphereMat);
+      sphere.position.set(0, 2.5, 2);
+      sphere.name = 'Sphere';
+      scene.add(sphere);
+
+      // --- Physics / Collision ---
+      const physics = new N3D.PhysicsWorld({ gravity: new N3D.Vector3(0, -9.81, 0) });
+      engine.physics = physics;
+
+      physics.addBoxCollider(ground, new N3D.Vector3(20, 0.4, 20));
+      for (const c of cubes) {
+        physics.addBoxCollider(c, new N3D.Vector3(1.1, 1.1, 1.1));
+      }
+      physics.addSphereCollider(sphere, 0.7);
+
+      let collisionCount = 0;
+      physics.on('collisionEnter', ({ a, b }) => {
+        collisionCount++;
+      });
+
+      renderer.setScene(scene, camera);
+
+      let angle = 0;
+      let sphereVel = new N3D.Vector3(1.8, 0, 0.9);
+
+      engine.events.on('update', ({ delta }) => {
+        angle += delta * 0.5;
+
+        // Orbit camera
+        const radius = 11;
+        camera.position.set(
+          Math.sin(angle * 0.25) * radius,
+          4 + Math.sin(angle * 0.15) * 0.8,
+          Math.cos(angle * 0.25) * radius
+        );
+        camera.worldMatrix.lookAt(
+          camera.position,
+          new N3D.Vector3(0, 0.5, 0),
+          new N3D.Vector3(0, 1, 0)
+        );
+        camera.matrixWorldInverse.copy(camera.worldMatrix).invert();
+        camera.matrix.copy(camera.worldMatrix);
+
+        // Animate cubes (spin)
+        for (let i = 0; i < cubes.length; i++) {
+          cubes[i].rotation.setFromAxisAngle(
+            new N3D.Vector3(0.2, 1, 0.1).normalize(),
+            angle * (0.6 + i * 0.15)
+          );
+        }
+
+        // Bounce sphere
+        sphere.position.x += sphereVel.x * delta;
+        sphere.position.z += sphereVel.z * delta;
+        sphere.position.y = 2.5 + Math.abs(Math.sin(angle * 1.5)) * 1.2;
+
+        if (sphere.position.x > 6 || sphere.position.x < -6) sphereVel.x *= -1;
+        if (sphere.position.z > 5 || sphere.position.z < -5) sphereVel.z *= -1;
+
+        // Physics step
+        physics.step(delta);
+
+        // Raycast from camera center (demo)
+        const hit = physics.raycast(
+          camera.position,
+          new N3D.Vector3(0, -0.3, -1).normalize(),
+          50
+        );
+
+        info.innerHTML = `N3D.js v0.2 — Sun + Collision<br>
+FPS: ${engine.stats.fps} | Frame: ${engine.frame}<br>
+DrawCalls: ${engine.stats.drawCalls} | Tris: ${engine.stats.triangles}<br>
+Sun intensity: ${sun.intensity.toFixed(1)} | Colliders: ${physics.colliders.length}<br>
+Collision events: ${collisionCount}<br>
+Ray hit: ${hit ? hit.object?.name + ' @ ' + hit.distance.toFixed(2) : 'none'}`;
+      });
+
+      engine.start();
+    }
+
+    main().catch((err) => {
+      console.error(err);
+      errorEl.style.display = 'block';
+      errorEl.textContent = 'Failed to start N3D.js:\n\n' + (err.stack || err.message || err);
+    });
+  </script>
+</body>
+</html>
