@@ -299,3 +299,118 @@ declare const N3D: {
 };
 
 export default N3D;
+
+/* ===== v0.3 additions ===== */
+
+export class Texture {
+  uuid: string;
+  name: string;
+  isTexture: boolean;
+  readonly gpuTexture: GPUTexture | null;
+  readonly view: GPUTextureView | null;
+  readonly sampler: GPUSampler | null;
+  dispose(): void;
+}
+
+export class Texture2D extends Texture {
+  isTexture2D: boolean;
+  width: number;
+  height: number;
+  format: string;
+  url: string | null;
+  upload(engine: Engine): this;
+  static load(url: string, options?: any): Promise<Texture2D>;
+  static clearCache(): void;
+}
+
+export class GLTFResult {
+  scene: Object3D;
+  scenes: Object3D[];
+  meshes: any[];
+  materials: PBRMaterial[];
+  textures: Texture2D[];
+  nodes: Object3D[];
+  animations: any[];
+  skins: any[];
+  asset: any;
+}
+
+export class GLTFLoader {
+  constructor(options?: { uploadTextures?: boolean });
+  load(url: string, engine?: Engine | null): Promise<GLTFResult>;
+  static load(url: string, engine?: Engine | null, options?: any): Promise<GLTFResult>;
+}
+
+export class DirectionalLight {
+  static createSun(options?: {
+    elevation?: number;
+    azimuth?: number;
+    intensity?: number;
+    color?: number | number[];
+    distance?: number;
+  }): DirectionalLight;
+  getDirection(out?: Vector3): Vector3;
+  color: Color;
+  intensity: number;
+  castShadow: boolean;
+  target: Object3D;
+  shadow: any;
+}
+
+export class AmbientLight {
+  constructor(color?: number | number[], intensity?: number);
+}
+
+export class PhysicsWorld {
+  constructor(options?: { gravity?: Vector3 });
+  gravity: Vector3;
+  colliders: any[];
+  addBoxCollider(object3d: Object3D, size?: Vector3, center?: Vector3): any;
+  addSphereCollider(object3d: Object3D, radius?: number, center?: Vector3): any;
+  removeCollider(collider: any): this;
+  step(deltaTime?: number): void;
+  raycast(origin: Vector3, direction: Vector3, maxDistance?: number, layerMask?: number): any;
+  raycastAll(origin: Vector3, direction: Vector3, maxDistance?: number, layerMask?: number): any[];
+  overlapSphere(center: Vector3, radius: number, layerMask?: number): any[];
+  on(event: string, cb: Function): this;
+  clear(): void;
+  dispose(): void;
+}
+
+export class Box3 {
+  min: Vector3;
+  max: Vector3;
+  constructor(min?: Vector3, max?: Vector3);
+  setFromCenterAndSize(center: Vector3, size: Vector3): this;
+  containsPoint(point: Vector3): boolean;
+  intersectsBox(box: Box3): boolean;
+  intersectsSphere(sphere: Sphere): boolean;
+  applyMatrix4(matrix: Matrix4): this;
+  clone(): Box3;
+}
+
+export class Sphere {
+  center: Vector3;
+  radius: number;
+  constructor(center?: Vector3, radius?: number);
+  containsPoint(point: Vector3): boolean;
+  intersectsSphere(sphere: Sphere): boolean;
+  clone(): Sphere;
+}
+
+export class Ray {
+  origin: Vector3;
+  direction: Vector3;
+  constructor(origin?: Vector3, direction?: Vector3);
+  at(t: number, out?: Vector3): Vector3;
+  intersectSphere(sphere: Sphere, outPoint?: Vector3): number | null;
+  intersectBox(box: Box3, outPoint?: Vector3): number | null;
+}
+
+export class Color {
+  r: number; g: number; b: number; a: number;
+  constructor(r?: number, g?: number, b?: number, a?: number);
+  setHex(hex: number): this;
+  setRGB(r: number, g: number, b: number): this;
+  clone(): Color;
+}

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>N3D.js — Demo 3: glTF Loader</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0a12; }
+    canvas { display: block; width: 100%; height: 100%; }
+    #info {
+      position: absolute; top: 12px; left: 12px;
+      color: #e8e8f0; font-family: ui-monospace, monospace; font-size: 12px;
+      background: rgba(0,0,0,0.7); padding: 10px 14px; border-radius: 8px;
+      line-height: 1.5; pointer-events: none; max-width: 360px;
+    }
+    #error {
+      position: absolute; inset: 0; display: none;
+      background: #1a0000; color: #ff8888; font-family: monospace;
+      padding: 24px; white-space: pre-wrap; overflow: auto; z-index: 10;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div id="info">N3D.js v0.3 — glTF Loader<br>Loading model...</div>
+  <div id="error"></div>
+
+  <script type="module">
+    import N3D from '../src/index.js';
+
+    const canvas = document.getElementById('c');
+    const info = document.getElementById('info');
+    const errorEl = document.getElementById('error');
+
+    // Public Khronos sample (DamagedHelmet) — requires network
+    const MODEL_URL = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb';
+
+    async function main() {
+      if (!navigator.gpu) {
+        throw new Error('WebGPU is not supported in this browser.');
+      }
+
+      const engine = await N3D.Engine.create({
+        canvas,
+        antialias: true,
+        powerPreference: 'high-performance',
+        debug: true
+      });
+
+      const renderer = new N3D.Renderer(engine);
+      engine.renderer = renderer;
+      renderer.clearColor = { r: 0.05, g: 0.06, b: 0.1, a: 1 };
+
+      const scene = new N3D.Scene();
+      const camera = new N3D.PerspectiveCamera(50, canvas.width / canvas.height, 0.1, 100);
+      camera.position.set(0, 1.2, 4);
+
+      // Sun
+      const sun = N3D.DirectionalLight.createSun({
+        elevation: 40,
+        azimuth: 30,
+        intensity: 2.2,
+        color: 0xfff0dd
+      });
+      scene.add(sun);
+      scene.add(new N3D.AmbientLight(0x7090c0, 0.35));
+
+      // Ground
+      const ground = new N3D.Mesh(
+        new N3D.BoxGeometry(12, 0.2, 12),
+        new N3D.PBRMaterial({ baseColor: [0.15, 0.16, 0.18], roughness: 0.9, metallic: 0 })
+      );
+      ground.position.y = -1.1;
+      scene.add(ground);
+
+      info.innerHTML = 'N3D.js v0.3 — glTF Loader<br>Fetching DamagedHelmet.glb...';
+
+      let modelRoot = null;
+      try {
+        const result = await N3D.GLTFLoader.load(MODEL_URL, engine);
+        modelRoot = result.scene;
+        scene.add(modelRoot);
+
+        // Center / scale model roughly
+        modelRoot.position.set(0, 0, 0);
+        modelRoot.scale.set(1, 1, 1);
+
+        info.innerHTML = `N3D.js v0.3 — glTF Loader<br>
+Loaded: DamagedHelmet.glb<br>
+Meshes: ${result.meshes.length} | Materials: ${result.materials.length}<br>
+Textures: ${result.textures.length} | Animations: ${result.animations.length}<br>
+(animations stored; playback needs Animation system)`;
+      } catch (e) {
+        // Network may be blocked — show clear message, still run scene
+        console.warn('glTF load failed (network?):', e);
+        info.innerHTML = `N3D.js v0.3 — glTF Loader<br>
+<span style="color:#f80">Could not fetch remote model.</span><br>
+Using fallback box. Check console / network.<br>
+API still works: N3D.GLTFLoader.load(url, engine)`;
+
+        const fallback = new N3D.Mesh(
+          new N3D.BoxGeometry(1.5, 1.5, 1.5),
+          new N3D.PBRMaterial({ baseColor: [0.8, 0.3, 0.2], metallic: 0.6, roughness: 0.3 })
+        );
+        scene.add(fallback);
+        modelRoot = fallback;
+      }
+
+      renderer.setScene(scene, camera);
+
+      let angle = 0;
+      engine.events.on('update', ({ delta }) => {
+        angle += delta * 0.4;
+        if (modelRoot) {
+          modelRoot.rotation.setFromAxisAngle(new N3D.Vector3(0, 1, 0), angle);
+        }
+        camera.position.set(
+          Math.sin(angle * 0.3) * 4,
+          1.2,
+          Math.cos(angle * 0.3) * 4
+        );
+        camera.worldMatrix.lookAt(
+          camera.position,
+          new N3D.Vector3(0, 0, 0),
+          new N3D.Vector3(0, 1, 0)
+        );
+        camera.matrixWorldInverse.copy(camera.worldMatrix).invert();
+        camera.matrix.copy(camera.worldMatrix);
+
+        info.innerHTML = (info.innerHTML.split('<br>').slice(0, 5).join('<br>')) +
+          `<br>FPS: ${engine.stats.fps} | DrawCalls: ${engine.stats.drawCalls}`;
+      });
+
+      engine.start();
+    }
+
+    main().catch((err) => {
+      console.error(err);
+      errorEl.style.display = 'block';
+      errorEl.textContent = 'Failed:\n\n' + (err.stack || err.message || err);
+    });
+  </script>
+</body>
+</html>

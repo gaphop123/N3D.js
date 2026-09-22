@@ -1,6 +1,6 @@
 {
   "name": "n3d.js",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Advanced WebGPU-first 3D Engine for the web. High-performance, modular, production-oriented architecture.",
   "type": "module",
   "main": "./dist/n3d.cjs",

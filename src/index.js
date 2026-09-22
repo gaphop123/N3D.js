@@ -1,6 +1,6 @@
 /**
  * N3D.js - Advanced WebGPU 3D Engine
- * Main entry point.
+ * Main entry point. v0.3.0
  */
 
 // Core
@@ -35,6 +35,9 @@ export { SphereGeometry } from './geometry/SphereGeometry.js';
 // Material
 export { Material, UnlitMaterial, PBRMaterial, ShaderMaterial } from './material/Material.js';
 
+// Texture
+export { Texture, Texture2D } from './texture/Texture.js';
+
 // Lighting
 export {
   Light,
@@ -55,6 +58,9 @@ export {
 } from './physics/Collider.js';
 export { PhysicsWorld } from './physics/PhysicsWorld.js';
 
+// Assets
+export { GLTFLoader, GLTFResult } from './assets/GLTFLoader.js';
+
 // Renderer
 export { Renderer } from './renderer/Renderer.js';
 
@@ -66,6 +72,7 @@ import { Mesh } from './scene/Mesh.js';
 import { BoxGeometry } from './geometry/BoxGeometry.js';
 import { SphereGeometry } from './geometry/SphereGeometry.js';
 import { PBRMaterial, UnlitMaterial, ShaderMaterial } from './material/Material.js';
+import { Texture2D } from './texture/Texture.js';
 import { Vector3 } from './math/Vector3.js';
 import { Matrix4 } from './math/Matrix4.js';
 import { Quaternion } from './math/Quaternion.js';
@@ -85,6 +92,7 @@ import {
 } from './lighting/Light.js';
 import { PhysicsWorld } from './physics/PhysicsWorld.js';
 import { BoxCollider, SphereCollider } from './physics/Collider.js';
+import { GLTFLoader } from './assets/GLTFLoader.js';
 
 const N3D = {
   Engine,
@@ -99,6 +107,7 @@ const N3D = {
   PBRMaterial,
   UnlitMaterial,
   ShaderMaterial,
+  Texture2D,
   Light,
   DirectionalLight,
   PointLight,
@@ -107,6 +116,7 @@ const N3D = {
   PhysicsWorld,
   BoxCollider,
   SphereCollider,
+  GLTFLoader,
   Vector3,
   Matrix4,
   Quaternion,
@@ -115,8 +125,8 @@ const N3D = {
   Sphere,
   Ray,
   Renderer,
-  REVISION: '0.2.0',
-  version: '0.2.0'
+  REVISION: '0.3.0',
+  version: '0.3.0'
 };
 
 export default N3D;
